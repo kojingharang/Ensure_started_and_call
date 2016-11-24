@@ -1,0 +1,13 @@
+%% vim: set ft=erlang : -*- erlang -*-
+{application, ensure_call,
+ [
+  {description, "Sample: How to ensure gen_server started and call it"},
+  {vsn, git},
+  {registered, [server_a_sup, server_a]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, {ensure_call_app, []}},
+  {env, []}
+ ]}.
