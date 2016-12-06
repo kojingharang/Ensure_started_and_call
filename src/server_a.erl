@@ -58,24 +58,22 @@ ensure_started_and_doit_goodly(Id) ->
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 init([]) ->
-    Ms = 1, %% This process will die soon!
-    _ = timer:apply_after(Ms, gen_server, cast, [self(), die]),
     {ok, 0}.
 
 handle_call(doit, _From, State) ->
-    _ = ets:update_counter(table, key, 1),
+    _ = doit(),
     {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 handle_cast(doit, State) ->
-    _ = ets:update_counter(table, key, 1),
+    _ = doit(),
     {noreply, State};
-handle_cast(die, State) ->
-    {stop, shutdown, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
+handle_info(die, State) ->
+    {stop, shutdown, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -88,6 +86,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
+
+doit() ->
+    Ms = 1, %% This process will die soon!
+    _ = erlang:send_after(Ms, self(), die),
+    _ = ets:update_counter(table, key, 1),
+    ok.
+
 
 %% Ensure gen_server for Id is started (probably)
 ensure_started(Id) ->
