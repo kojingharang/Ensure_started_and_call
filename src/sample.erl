@@ -23,9 +23,10 @@
 a() ->
     table = ets:new(table, [named_table, public]),
 
-    ok = run(bad_sample, ensure_started_and_doit1, 0),
-    ok = run(good_sample, ensure_started_and_doit2, 0),
-    _ = ets:delete(table).
+    ok = run(bad_sample, ensure_started_and_doit_badly, 0),
+    ok = run(good_sample, ensure_started_and_doit_goodly, 0),
+    _ = ets:delete(table),
+    ok.
 
 run(Name, Fun, I) ->
     _ = case I of

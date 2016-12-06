@@ -9,8 +9,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([
          start_link/1,
-         ensure_started_and_doit1/1,
-         ensure_started_and_doit2/1
+         ensure_started_and_doit_badly/1,
+         ensure_started_and_doit_goodly/1
         ]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -27,8 +27,8 @@ start_link(Id) ->
     gen_server:start_link(ServerName, ?MODULE, [], []).
 
 %% @doc Do it badly.
--spec ensure_started_and_doit1(atom()) -> ok.
-ensure_started_and_doit1(Id) ->
+-spec ensure_started_and_doit_badly(atom()) -> ok.
+ensure_started_and_doit_badly(Id) ->
     {ok, _Pid} = ensure_started(Id),
 
     %% !! _Pid might be down here !!
@@ -36,8 +36,8 @@ ensure_started_and_doit1(Id) ->
     gen_server:cast(Id, doit).
 
 %% @doc Do it goodly.
--spec ensure_started_and_doit2(atom()) -> ok.
-ensure_started_and_doit2(Id) ->
+-spec ensure_started_and_doit_goodly(atom()) -> ok.
+ensure_started_and_doit_goodly(Id) ->
     Fun =
         fun() ->
                 try
