@@ -9,8 +9,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([
          start_link/1,
-         ensure_started_and_add1/2,
-         ensure_started_and_add2/2
+         ensure_started_and_doit1/1,
+         ensure_started_and_doit2/1
         ]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -26,24 +26,31 @@ start_link(Id) ->
     ServerName = {local, Id},
     gen_server:start_link(ServerName, ?MODULE, [], []).
 
-%% @doc Add a number to the state and return result.
-ensure_started_and_add1(Id, A) ->
-    try
-        {ok, _Pid} = ensure_started(Id),
+%% @doc Do it badly.
+-spec ensure_started_and_doit1(atom()) -> ok.
+ensure_started_and_doit1(Id) ->
+    {ok, _Pid} = ensure_started(Id),
 
-        %% _Pid might be down here.
+    %% !! _Pid might be down here !!
 
-        gen_server:call(Id, {add, A})
-    catch
-        Class:Reason ->
-            {error, {catched, {Class, Reason}}}
-    end.
+    gen_server:cast(Id, doit).
 
-%% @doc Add a number to the state and return result.
-ensure_started_and_add2(Id, A) ->
-    Fun = fun() ->
-                  ensure_started_and_add1(Id, A)
-          end,
+%% @doc Do it goodly.
+-spec ensure_started_and_doit2(atom()) -> ok.
+ensure_started_and_doit2(Id) ->
+    Fun =
+        fun() ->
+                try
+                    {ok, _Pid} = ensure_started(Id),
+
+                    %% !! _Pid might be down here !!
+
+                    gen_server:call(Id, doit)
+                catch
+                    Class:Reason ->
+                        {error, {catched, {Class, Reason}}}
+                end
+        end,
     %% Call Fun. Retry if gen_server:call fail.
     call_with_retry(Fun, fun need_retry/1, 5).
 
@@ -55,12 +62,15 @@ init([]) ->
     _ = timer:apply_after(Ms, gen_server, cast, [self(), die]),
     {ok, 0}.
 
-handle_call({add, A}, _From, State) ->
-    State1 = A+State,
-    {reply, {ok, State1}, State1};
+handle_call(doit, _From, State) ->
+    _ = ets:update_counter(table, key, 1),
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
+handle_cast(doit, State) ->
+    _ = ets:update_counter(table, key, 1),
+    {noreply, State};
 handle_cast(die, State) ->
     {stop, shutdown, State};
 handle_cast(_Request, State) ->
@@ -101,10 +111,9 @@ call_with_retry(Fun, NeedRetryFun, N) ->
         true ->
             case N of
                 0 ->
-                    _ = io:format("Give up...~n"),
+                    _ = io:format("Giving up...~n"),
                     Ret;
                 _ ->
-                    %% _ = io:format("Retry... ~p~n", [N-1]),
                     call_with_retry(Fun, NeedRetryFun, N-1)
             end
     end.

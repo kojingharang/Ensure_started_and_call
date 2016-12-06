@@ -23,7 +23,7 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec start_child(binary()) -> {ok, pid()} | {error, Reason::term()}.
+-spec start_child(atom()) -> {ok, pid()} | {error, Reason::term()}.
 start_child(Id) ->
     supervisor:start_child(?MODULE, [Id]).
 

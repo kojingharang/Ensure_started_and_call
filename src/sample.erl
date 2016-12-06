@@ -2,8 +2,8 @@
 %% ```
 %% %% Sample output
 %% > sample:a().
-%% Finished. OKs 209090 Errs 498
-%% Finished. OKs 196872 Errs 0
+%% bad_sample finished. missing calls: 731 (242159/242890)
+%% good_sample finished. missing calls: 0 (252840/252840)
 %% ok
 %% '''
 
@@ -21,36 +21,30 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 a() ->
-    ok = run(foo, ensure_started_and_add1, 0, 0, 0, 0),
-    ok = run(bar, ensure_started_and_add2, 0, 0, 0, 0).
+    table = ets:new(table, [named_table, public]),
 
-run(Name, Fun, I, Last, OKs, Errs) ->
-    _ = case {OKs, Errs} of
-        {0, 0} ->
-            _ = erlang:send_after(1000, self(), owari);
-        _ ->
-            ok
-    end,
+    ok = run(bad_sample, ensure_started_and_doit1, 0),
+    ok = run(good_sample, ensure_started_and_doit2, 0),
+    _ = ets:delete(table).
+
+run(Name, Fun, I) ->
+    _ = case I of
+            0 ->
+                _ = ets:delete(table, key),
+                _ = ets:insert_new(table, {key, 0}),
+                _ = erlang:send_after(1000, self(), owari);
+            _ ->
+                ok
+        end,
     receive
         owari ->
-            _ = io:format("Finished. OKs ~p Errs ~p~n", [OKs, Errs]),
+            %% Print summary
+            All = I,
+            [{key, Actual}] = ets:lookup(table, key),
+            _ = io:format("~p finished. missing calls: ~p (~p/~p)~n", [Name, All-Actual, Actual, All]),
             ok
     after
         0 ->
-            case server_a:Fun(Name, I) of
-                {ok, _V} ->
-                    %% _ = io:format("Value: ~p~n", [{I, Last, _V}]),
-                    true = lists:member(_V, [I, Last+I]), %% Added or reset -> added
-                    run(Name, Fun, I+1, _V, OKs+1, Errs);
-                {error, _Reason} ->
-                    case _Reason of
-                        {catched, {exit, {noproc, _}}} ->
-                            ok;
-                        {catched, {exit, {shutdown, _}}} ->
-                            ok;
-                        _ ->
-                            _ = io:format("error ~p~n", [_Reason])
-                    end,
-                    run(Name, Fun, I+1, Last, OKs, Errs+1)
-            end
+            ok = server_a:Fun(Name),
+            run(Name, Fun, I+1)
     end.
